@@ -1,0 +1,69 @@
+<div class="task-table-wrapper">
+    <h3 class="section-title">任务列表</h3>
+    <table class="table task-table">
+        <thead>
+            <tr>
+                <th>EBC步骤</th>
+                <th>阶段</th>
+                <th>内容</th>
+                <th>产出/交付物</th>
+                <th>公司</th>
+                <th>负责人</th>
+                <th>状态</th>
+                <th>开始日期</th>
+                <th>结束日期</th>
+                <th>里程碑</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr class="{% if task.is_draft %}draft-row{% endif %}"
+                hx-get="/api/tasks/{{ task.id }}/detail"
+                hx-trigger="click"
+                hx-target="#task-detail-modal"
+                hx-swap="innerHTML"
+                @click="$dispatch('open-modal', 'task-detail-{{ task.id }}')">
+                <td>
+                    <span class="ebc-step-label ebc-{{ task.ebc_step|replace(' ', '_')|replace('&', '') }}">
+                        {{ task.ebc_step }}
+                    </span>
+                </td>
+                <td>{{ task.phase }}</td>
+                <td class="task-content">{{ task.content or '-' }}</td>
+                <td class="task-deliverable">{{ task.deliverable or '-' }}</td>
+                <td>{{ task.company or '-' }}</td>
+                <td>{{ task.person_responsible or '-' }}</td>
+                <td>
+                    <span class="badge badge-{{ task.status }}">{{ task.status }}</span>
+                </td>
+                <td class="date-cell">{{ task.start_date.strftime('%m-%d') if task.start_date else '-' }}</td>
+                <td class="date-cell">{{ task.end_date.strftime('%m-%d') if task.end_date else '-' }}</td>
+                <td class="center">{{ '✓' if task.is_milestone else '' }}</td>
+                <td class="actions" @click.stop>
+                    <button class="btn btn-sm btn-outline"
+                            hx-get="/api/tasks/{{ task.id }}/edit"
+                            hx-target="#task-form-container"
+                            hx-swap="innerHTML"
+                            @click="activeModalTitle='编辑任务'; activeModal='edit-task-{{ task.id }}'">
+                        编辑
+                    </button>
+                    {% if current_user.is_admin() %}
+                    <form method="POST" action="/api/tasks/{{ task.id }}/delete"
+                          hx-post="/api/tasks/{{ task.id }}/delete"
+                          hx-target="#task-list"
+                          hx-swap="innerHTML"
+                          onsubmit="return confirm('确定删除此任务吗？')"
+                          style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Task Detail Modal Container -->
+<div id="task-detail-modal"></div>

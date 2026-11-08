@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="gantt-page">
+<div class="gantt-toolbar">
+    <div class="page-header">
+        <h2>用户管理 - {{ project.name }}</h2>
+    </div>
+</div>
+<div class="table-container">
+    <table class="table">
+        <thead><tr>
+            <th>邮箱</th><th>用户名</th><th>公司</th><th>角色</th><th>状态</th>
+            {% if current_user.is_admin() %}<th>操作</th>{% endif %}
+        </tr></thead>
+        <tbody>
+            {% for user in members %}
+            <tr>
+                <td>{{ user.email }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.company or '-' }}</td>
+                <td><span class="badge badge-{{ user.role }}">{{ user.role }}</span></td>
+                <td><span class="badge badge-{{ user.status }}">{{ user.status }}</span></td>
+                {% if current_user.is_admin() %}
+                <td>
+                    <form method="POST" action="/users/remove/{{ user.id }}"
+                          onsubmit="return confirm('确定从项目移除 {{ user.username }} 吗？')" style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-danger">移除</button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;color:var(--gray-400)">暂无用户</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if current_user.is_admin() and all_users %}
+<div class="add-user-section" style="margin-top:20px">
+    <h3 style="font-size:14px;font-weight:600;margin-bottom:8px">添加用户到项目</h3>
+    <form method="POST" action="/users/add" class="form-inline">
+        <select name="user_id" required style="padding:6px 10px;border:1px solid var(--gray-300);border-radius:var(--radius);font-size:13px;margin-right:8px">
+            <option value="">选择用户...</option>
+            {% for u in all_users %}
+            {% if u not in members %}
+            <option value="{{ u.id }}">{{ u.username }} ({{ u.email }})</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">添加</button>
+    </form>
+</div>
+{% endif %}
+</div>
+{% endblock %}

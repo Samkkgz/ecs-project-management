@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ecs-pm-db
+    environment:
+      POSTGRES_DB: ecs_pm
+      POSTGRES_USER: ecs
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecs -d ecs_pm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecs-pm-net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecs-pm-app
+    ports:
+      - "8081:8081"
+    environment:
+      DATABASE_URL: postgresql://ecs:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/ecs_pm
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      UPLOAD_FOLDER: /data/files
+      MAX_CONTENT_LENGTH: "52428800"
+      COOKIE_SECURE: "true"
+    volumes:
+      - ./app:/app
+      - uploads:/data/files
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: uvicorn run:app --host 0.0.0.0 --port 8081
+    networks:
+      - ecs-pm-net
+
+volumes:
+  pgdata:
+    driver: local
+  uploads:
+    driver: local
+
+networks:
+  ecs-pm-net:
+    driver: bridge

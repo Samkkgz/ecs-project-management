@@ -1,0 +1,11 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pyo
+data
+.env
+.env.*
+.playwright-cli
+.venv

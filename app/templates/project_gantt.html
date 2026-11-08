@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% set EC = {'Visioning':'#3B82F6','Fesibility':'#8B5CF6','Development':'#10B981','Commissioning':'#F59E0B','Implementation & Nurture':'#EF4444','Continue Improvement':'#6B7280'} %}
+{% block content %}
+<div class="gantt-page">
+<div class="gantt-toolbar">
+    <div class="stats-bar">
+        <div class="stat-item"><span class="stat-label">总任务</span><span class="stat-value">{{ stats.total }}</span></div>
+        <div class="stat-item"><span class="stat-label">已完成</span><span class="stat-value stat-done">{{ stats.completed }}</span></div>
+        <div class="stat-item"><span class="stat-label">进行中</span><span class="stat-value stat-progress">{{ stats.in_progress }}</span></div>
+        <div class="stat-item"><span class="stat-label">待开始</span><span class="stat-value stat-pending">{{ stats.pending }}</span></div>
+        <div class="stat-item"><span class="stat-label">里程碑</span><span class="stat-value">{{ stats.milestones }}</span></div>
+        <div class="stat-item"><span class="stat-label">完成率</span><span class="stat-value">{{ stats.rate }}</span></div>
+    </div>
+    <div class="ebc-legend">{% for s in ebc_steps %}<span class="legend-item"><span class="legend-color" style="background:{{ EC.get(s,'#999') }}"></span>{{ s }}</span>{% endfor %}</div>
+    <button class="btn btn-primary btn-add-task" @click="activeModalTitle='新增任务';activeModalContent=document.getElementById('nt').innerHTML;activeModal='new-task'">+ 新增</button>
+</div>
+
+{% if task_data %}
+{% set LW = {'ebc':75,'phase':50,'con':140,'del':120,'com':50,'per':75,'sta':48,'mil':40,'act':48} %}
+{% set totalW = LW.ebc+LW.phase+LW.con+LW.del+LW.com+LW.per+LW.sta+LW.mil+LW.act+8 %}
+
+<div class="gantt-layout">
+    <!-- HEADER ROW -->
+    <div class="gantt-header">
+        <div class="left-header" style="width:{{ totalW }}px;flex-shrink:0;display:flex;flex-direction:column">
+            <!-- Filter row, aligned with right month-header row -->
+            <form method="GET" action="/gantt" style="display:flex;height:24px;flex-shrink:0;align-items:center;gap:2px;padding:0 4px">
+                <select name="filter_ebc" style="height:20px;font-size:11px;border:1px solid var(--gray-200);border-radius:3px;background:#fff;color:var(--gray-600);cursor:pointer"
+                        onchange="this.form.submit()">
+                    <option value="">全部EBC</option>
+                    {% for s in ebc_steps %}<option value="{{ s }}" {% if filters.ebc == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+                </select>
+                <select name="filter_phase" style="height:20px;font-size:11px;border:1px solid var(--gray-200);border-radius:3px;background:#fff;color:var(--gray-600);cursor:pointer"
+                        onchange="this.form.submit()">
+                    <option value="">全部阶段</option>
+                    {% for p in phases %}<option value="{{ p }}" {% if filters.phase == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+                </select>
+                <select name="filter_status" style="height:20px;font-size:11px;border:1px solid var(--gray-200);border-radius:3px;background:#fff;color:var(--gray-600);cursor:pointer"
+                        onchange="this.form.submit()">
+                    <option value="">全部状态</option>
+                    {% for s in task_statuses %}<option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+                </select>
+                <select name="filter_type" style="height:20px;font-size:11px;border:1px solid var(--gray-200);border-radius:3px;background:#fff;color:var(--gray-600);cursor:pointer"
+                        onchange="this.form.submit()">
+                    <option value="">全部类型</option>
+                    <option value="milestone" {% if filters.type == 'milestone' %}selected{% endif %}>里程碑</option>
+                    <option value="task" {% if filters.type == 'task' %}selected{% endif %}>任务</option>
+                </select>
+            </form>
+            <!-- Title row, aligned with day numbers -->
+            <div style="display:flex;height:20px;flex-shrink:0">
+                <div class="lc hdr" style="width:{{ LW.ebc }}px">EBC</div>
+                <div class="lc hdr" style="width:{{ LW.phase }}px">阶段</div>
+                <div class="lc hdr" style="width:{{ LW.con }}px">内容</div>
+                <div class="lc hdr" style="width:{{ LW.del }}px">产出</div>
+                <div class="lc hdr" style="width:{{ LW.com }}px">公司</div>
+                <div class="lc hdr" style="width:{{ LW.per }}px">负责人</div>
+                <div class="lc hdr" style="width:{{ LW.sta }}px">状态</div>
+                <div class="lc hdr" style="width:{{ LW.mil }}px;justify-content:center">里程碑</div>
+                <div class="lc hdr" style="width:{{ LW.act }}px">操作</div>
+            </div>
+        </div>
+        <div class="right-header-scroll" style="flex:1">
+            <div style="width:{{ timeline_width }}px;position:relative;min-height:44px">
+                <div class="mr" style="width:100%;height:24px;display:flex">
+                {% for m in months %}<div class="mc" style="width:{{ m.width }}px;flex-shrink:0">{{ m.label }}</div>{% endfor %}
+                </div>
+                <div class="dr" style="width:100%;height:20px;display:flex">
+                {% for d in days %}<div class="dc" style="width:30px;flex-shrink:0">{{ d }}</div>{% endfor %}
+                </div>
+                {% if today_left>0 and today_left<timeline_width %}<div class="tm" style="left:{{ today_left }}px;height:44px"></div>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="gantt-body" id="gantt-bd">
+    {% for td in task_data %}
+    <div class="gantt-row" style="display:flex;border-bottom:1px solid var(--gray-100);min-height:34px;{% if td.is_draft %}background:#fff0f3{% endif %}">
+        <!-- LEFT -->
+        <div class="left-row" style="width:{{ totalW }}px;flex-shrink:0;display:flex">
+            <div class="lc" style="width:{{ LW.ebc }}px"><span class="ebc-step-label ebc-{{ td.ebc_step|replace(' ','_')|replace('&','') }}">{{ td.ebc_step }}</span></div>
+            <div class="lc" style="width:{{ LW.phase }}px">{{ td.phase }}</div>
+            <div class="lc ct" style="width:{{ LW.con }}px">{{ td.content or '-' }}</div>
+            <div class="lc ct" style="width:{{ LW.del }}px">{{ td.deliverable or '-' }}</div>
+            <div class="lc" style="width:{{ LW.com }}px">{{ td.company }}</div>
+            <div class="lc" style="width:{{ LW.per }}px">{{ td.person_responsible }}</div>
+            <div class="lc" style="width:{{ LW.sta }}px"><span class="badge badge-{{ td.status }}">{{ td.status }}</span></div>
+            <div class="lc" style="width:{{ LW.mil }}px;justify-content:center">{{ '✦' if td.is_milestone else '' }}</div>
+            <div class="lc" style="width:{{ LW.act }}px"><button class="be" @click.stop="activeModalTitle='编辑任务';activeModalContent=document.getElementById('e{{ td.id }}').innerHTML;activeModal='e{{ td.id }}'">✎</button></div>
+        </div>
+        <!-- RIGHT -->
+        <div class="right-row-wrap" style="flex:1;min-width:0;">
+            <div class="right-row" style="width:{{ timeline_width }}px;position:relative;min-height:34px">
+                <div style="height:34px;position:relative">
+                {% if td.bar_width>0 %}
+                {% if td.is_milestone %}
+                <div style="position:absolute;left:{{ td.bar_left }}px;width:{{ td.bar_width }}px;top:13px;height:4px;border-radius:2px;background:{{ EC.get(td.ebc_step,'#F59E0B') }};opacity:.6"></div>
+                <div class="ms" style="left:{{ td.bar_left }}px" @click.stop="activeModalTitle='任务详情';activeModalContent=document.getElementById('d{{ td.id }}').innerHTML;activeModal='d{{ td.id }}'">
+                    <svg width="22" height="22" viewBox="0 0 22 22"><polygon points="11,1 21,11 11,21 1,11" fill="{{ EC.get(td.ebc_step,'#F59E0B') }}" stroke="#fff" stroke-width="1.5"/></svg>
+                </div>
+                {% else %}
+                <div class="tb" style="left:{{ td.bar_left }}px;width:{{ td.bar_width }}px;background:{{ '#F472B6' if td.is_draft else EC.get(td.ebc_step,'#6B7280') }}"
+                     @click.stop="activeModalTitle='任务详情';activeModalContent=document.getElementById('d{{ td.id }}').innerHTML;activeModal='d{{ td.id }}'"
+                     ondblclick="(function(){var x=document.querySelector('[x-data]');if(x&&x.__x){x.__x.$data.activeModalTitle='编辑任务';x.__x.$data.activeModalContent=document.getElementById('e{{ td.id }}').innerHTML;x.__x.$data.activeModal='e{{ td.id }}'}})()">
+                    {% if td.status=='完成' %}<div class="tbp" style="width:100%"></div>{% elif td.status=='进行中' %}<div class="tbp" style="width:50%"></div>{% endif %}
+                    <span class="bl">{{ td.content }}</span>
+                </div>
+                {% endif %}
+                {% endif %}
+                {% if today_left>0 and today_left<timeline_width %}<div class="tm" style="left:{{ today_left }}px"></div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="dashboard-empty" style="padding:60px 20px;text-align:center;color:var(--gray-400)"><h3>暂无任务</h3><p>点击「新增任务」添加</p></div>
+{% endif %}
+</div>
+
+<div id="nt" style="display:none">
+<form method="POST" action="/api/projects/{{ project.id }}/tasks/create">
+<div class="form-row"><div class="form-group"><label>EBC</label><select name="ebc_step" required>{% for s in ebc_steps %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+</select></div><div class="form-group"><label>阶段</label><select name="phase">{% for p in phases %}<option value="{{ p }}">{{ p }}</option>{% endfor %}</select></div></div>
+<div class="form-row"><div class="form-group"><label>任务内容</label><input name="content" required></div><div class="form-group"><label>产出/目标</label><input name="deliverable"></div></div>
+<div class="form-row"><div class="form-group"><label>公司</label><input name="company"></div><div class="form-group"><label>负责人</label><input name="person_responsible"></div></div>
+<div class="form-row"><div class="form-group"><label>开始/结束</label><input type="date" name="start_date"> ~ <input type="date" name="end_date"></div></div>
+<div class="form-row"><div class="form-group"><label>状态</label><select name="status">{% for s in task_statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
+<div class="form-group"><label><input type="checkbox" name="is_milestone" value="1"> 里程碑</label></div></div>
+<button type="submit" class="btn btn-primary">创建任务</button>
+</form>
+</div>
+
+<!-- Task detail & edit modals -->
+{% for td in task_data %}
+<div id="d{{ td.id }}" style="display:none">
+<div class="detail-view"><div class="dv-row"><label>EBC</label><span>{{ td.ebc_step }}</span></div>
+<div class="dv-row"><label>阶段</label><span>{{ td.phase }}</span></div>
+<div class="dv-row"><label>内容</label><span>{{ td.content }}</span></div>
+<div class="dv-row"><label>产出</label><span>{{ td.deliverable or '-' }}</span></div>
+<div class="dv-row"><label>公司</label><span>{{ td.company }}</span></div>
+<div class="dv-row"><label>负责人</label><span>{{ td.person_responsible }}</span></div>
+<div class="dv-row"><label>状态</label><span class="badge badge-{{ td.status }}">{{ td.status }}</span></div>
+{% if td.is_milestone %}<div class="dv-row"><label>里程碑</label><span>✦</span></div>{% endif %}
+<div class="dv-row"><label>开始</label><span>{{ td.start_date }}</span></div>
+<div class="dv-row"><label>结束</label><span>{{ td.end_date }}</span></div></div>
+</div>
+<div id="e{{ td.id }}" style="display:none">
+<form method="POST" action="/api/tasks/{{ td.id }}/update">
+<div class="form-row"><div class="form-group"><label>EBC</label><select name="ebc_step">{% for s in ebc_steps %}<option value="{{ s }}" {% if td.ebc_step == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+<div class="form-group"><label>阶段</label><select name="phase">{% for p in phases %}<option value="{{ p }}" {% if td.phase == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select></div></div>
+<div class="form-row"><div class="form-group"><label>内容</label><input name="content" value="{{ td.content }}"></div>
+<div class="form-group"><label>产出</label><input name="deliverable" value="{{ td.deliverable }}"></div></div>
+<div class="form-row"><div class="form-group"><label>公司</label><input name="company" value="{{ td.company }}"></div>
+<div class="form-group"><label>负责人</label><input name="person_responsible" value="{{ td.person_responsible }}"></div></div>
+<div class="form-row"><div class="form-group"><label>开始</label><input type="date" name="start_date" value="{{ td.start_date or '' }}"></div>
+<div class="form-group"><label>结束</label><input type="date" name="end_date" value="{{ td.end_date or '' }}"></div></div>
+<div class="form-row"><div class="form-group"><label>状态</label><select name="status">{% for s in task_statuses %}<option value="{{ s }}" {% if td.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+<div class="form-group"><label><input type="checkbox" name="is_milestone" value="1" {% if td.is_milestone %}checked{% endif %}> 里程碑</label></div></div>
+<button type="submit" class="btn btn-primary">保存</button>
+</form>
+</div>
+{% endfor %}
+{% endblock %}

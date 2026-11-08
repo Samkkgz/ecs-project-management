@@ -1,0 +1,73 @@
+<form method="POST" action="/api/tasks/{{ task.id }}/update">
+    <div class="form-row">
+        <div class="form-group">
+            <label for="edit_ebc_step_{{ task.id }}">EBC步骤</label>
+            <select id="edit_ebc_step_{{ task.id }}" name="ebc_step" required>
+                {% for step in ebc_steps %}
+                <option value="{{ step }}" {% if step == task.ebc_step %}selected{% endif %}>{{ step }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="edit_phase_{{ task.id }}">阶段</label>
+            <select id="edit_phase_{{ task.id }}" name="phase">
+                {% for p in phases %}
+                <option value="{{ p }}" {% if p == task.phase %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="edit_content_{{ task.id }}">内容</label>
+        <input type="text" id="edit_content_{{ task.id }}" name="content" value="{{ task.content or '' }}" placeholder="任务内容">
+    </div>
+    <div class="form-group">
+        <label for="edit_deliverable_{{ task.id }}">产出/交付物</label>
+        <input type="text" id="edit_deliverable_{{ task.id }}" name="deliverable" value="{{ task.deliverable or '' }}" placeholder="交付物">
+    </div>
+    <div class="form-row">
+        <div class="form-group">
+            <label for="edit_company_{{ task.id }}">公司</label>
+            <input type="text" id="edit_company_{{ task.id }}" name="company" value="{{ task.company or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="edit_person_{{ task.id }}">负责人</label>
+            <input type="text" id="edit_person_{{ task.id }}" name="person_responsible" value="{{ task.person_responsible or '' }}">
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group">
+            <label for="edit_start_{{ task.id }}">开始日期</label>
+            <input type="date" id="edit_start_{{ task.id }}" name="start_date"
+                   value="{{ task.start_date.strftime('%Y-%m-%d') if task.start_date else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="edit_end_{{ task.id }}">结束日期</label>
+            <input type="date" id="edit_end_{{ task.id }}" name="end_date"
+                   value="{{ task.end_date.strftime('%Y-%m-%d') if task.end_date else '' }}">
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group">
+            <label for="edit_status_{{ task.id }}">状态</label>
+            <select id="edit_status_{{ task.id }}" name="status">
+                {% for s in task_statuses %}
+                <option value="{{ s }}" {% if s == task.status %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group checkbox-group">
+            <label>
+                <input type="checkbox" name="is_milestone" {% if task.is_milestone %}checked{% endif %}>
+                里程碑
+            </label>
+        </div>
+    </div>
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">保存</button>
+        <button type="button" class="btn btn-secondary" @click="activeModal = null">取消</button>
+        {% if current_user.is_admin() %}
+        <button type="button" class="btn btn-danger" style="margin-left:auto" onclick="confirmDeleteTask({{ task.id }})">删除此任务</button>
+        {% endif %}
+    </div>
+</form>

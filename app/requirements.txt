@@ -1,0 +1,23 @@
+# ECS 项目管理系统 - FastAPI + Uvicorn (v2.0.0)
+
+# Database
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
+
+# Web framework
+# starlette >= 0.40 fixes CVE-2024-47874 (multipart denial of service)
+fastapi==0.115.6
+starlette==0.41.3
+uvicorn[standard]==0.30.0
+python-multipart==0.0.20
+Jinja2==3.1.4
+aiofiles==24.1.0
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+
+# Data
+openpyxl==3.1.5
+python-dateutil==2.9.0

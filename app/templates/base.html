@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECS项目管理系统</title>
+    <meta name="csrf-token" content="">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+    <link rel="stylesheet" href="/static/css/app.css?v=2.0.1">
+</head>
+<body x-data="{ activeModal: null, activeModalTitle: '', activeModalContent: '' }">
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/dashboard" class="brand">ECS项目管理系统</a>
+            {% if nav_projects %}
+            <select class="project-select" onchange="if(this.value) window.location.href='/set-project/'+this.value">
+                <option value="">— 选择项目 —</option>
+                {% for p in nav_projects %}
+                <option value="{{ p.id }}" {% if current_project and current_project.id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+        </div>
+        {% if current_project %}
+        <div class="nav-center">
+            <a href="/gantt" class="tab-btn {% if request.url.path == '/gantt' %}active{% endif %}">甘特图</a>
+            <a href="/files" class="tab-btn {% if request.url.path == '/files' %}active{% endif %}">文件仓库</a>
+            <a href="/users" class="tab-btn {% if request.url.path == '/users' %}active{% endif %}">用户管理</a>
+        </div>
+        {% endif %}
+        <div class="nav-right">
+            <span class="user-badge">{{ current_user.role }}</span>
+            <span class="user-name">{{ current_user.username }}</span>
+            {% if current_user.is_super_admin() %}
+            <a href="/admin" class="btn btn-sm btn-outline">系统管理</a>
+            {% endif %}
+            <a href="/logout" class="btn btn-sm btn-outline">退出</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        
+        {% block content %}{% endblock %}
+    </main>
+
+    <div class="modal-overlay" x-show="activeModal" x-cloak
+         @keydown.escape.window="activeModal = null" x-transition:enter="fade-in">
+        <div class="modal" @click.outside="activeModal = null" x-transition:enter="slide-up">
+            <div class="modal-header">
+                <h3 x-text="activeModalTitle"></h3>
+                <button @click="activeModal = null" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" x-html="activeModalContent"></div>
+        </div>
+    </div>
+
+    <script defer src="/static/lib/htmx.min.js?v=2.0.1"></script>
+    <script defer src="/static/lib/alpine.min.js?v=2.0.1"></script>
+    <script defer src="/static/lib/lucide.min.js?v=2.0.1"></script>
+    <script defer src="/static/js/app.js?v=2.0.1"></script>
+</body>
+</html>

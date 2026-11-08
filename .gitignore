@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.*
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Local tooling
+.playwright-cli/
+
+# Uploads
+/data/
+
+# Runtime secrets (generated when env vars are absent)
+**/.app_secret
+**/.jwt_secret
+**/initial_admin_password.txt
+.env
+
+# Logs
+*.log
+upload_debug.log
+
+# Backups (keep preserved as they're versioned)
+.backup-*/
+preserved-*/

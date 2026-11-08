@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="gantt-page">
+<div class="gantt-toolbar">
+    <div class="page-header">
+        <h2>{{ project.name }} - 文件仓库</h2>
+    </div>
+    <div class="tabs">
+        <div class="tab-nav">
+            <a href="?ebc_step=" class="tab-btn {% if not request.query_params.get('ebc_step') %}active{% endif %}">所有文件</a>
+            {% for step in ebc_steps %}
+            <a href="?ebc_step={{ step }}" class="tab-btn {% if request.query_params.get('ebc_step') == step %}active{% endif %}">{{ step }}</a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="upload-area">
+  <div class="upload-step-selector">
+    <label class="upload-label">上传到步骤：</label>
+    <select id="upload_ebc_step" class="upload-select" onchange="window._uploadStep=this.value">
+      <option value="">未分类</option>
+      {% for step in ebc_steps %}
+      <option value="{{ step }}" {% if request.query_params.get('ebc_step') == step %}selected{% endif %}>{{ step }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <form method="POST" action="/api/projects/{{ project.id }}/files/upload-simple"
+        enctype="multipart/form-data"
+        class="upload-form" id="upload_form">
+
+    <div class="dropzone" id="upload_dropzone"
+         ondragover="event.preventDefault();this.classList.add('drag-over')"
+         ondragleave="this.classList.remove('drag-over')"
+         ondrop="event.preventDefault();this.classList.remove('drag-over');document.getElementById('file_input').files=event.dataTransfer.files;this.form.submit()"
+         onclick="document.getElementById('file_input').click()">
+      <div class="dropzone-icon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+        </svg>
+      </div>
+      <div class="dropzone-text">拖拽文件到此处，或<span class="dropzone-link">点击选择文件</span></div>
+      <input id="file_input" type="file" name="file" required class="dropzone-input"
+             onchange="this.form.submit()" style="display:none">
+    </div>
+
+    <input type="hidden" name="ebc_step" id="ebc_step_hidden" value="{{ request.query_params.get('ebc_step', '') }}">
+  </form>
+</div>
+
+<script>
+// Sync step selector with hidden input
+document.getElementById('upload_ebc_step').addEventListener('change', function() {
+  document.getElementById('ebc_step_hidden').value = this.value;
+});
+</script>
+
+<div id="file-list">
+    {% include 'includes/file_items.html' %}
+</div>
+</div>
+{% endblock %}

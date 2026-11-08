@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-page">
+    <div class="page-header">
+        <h2>项目总览</h2>
+        {% if current_user.is_admin() %}
+        <a href="/admin/users" class="btn btn-sm btn-outline">系统管理</a>
+        {% endif %}
+    </div>
+
+{% if nav_projects %}
+<div class="project-grid">
+    {% for p in nav_projects %}
+    <a href="/set-project/{{ p.id }}?next=/gantt" class="project-card" style="display:block;text-decoration:none;color:inherit">
+        <div class="project-card-header">
+            <h3>{{ p.name }}</h3>
+            <span class="project-status status-{{ p.status }}">{{ p.status }}</span>
+        </div>
+        {% if project_stats and p.id in project_stats %}
+        {% set s = project_stats[p.id] %}
+        <div class="project-stats">
+            <div class="stat"><span class="stat-value">{{ s.total }}</span><span class="stat-label">任务</span></div>
+            <div class="stat"><span class="stat-value" style="color:var(--success)">{{ s.completed }}</span><span class="stat-label">完成</span></div>
+            <div class="stat"><span class="stat-value" style="color:var(--primary)">{{ s.in_progress }}</span><span class="stat-label">进行</span></div>
+            <div class="stat"><span class="stat-value" style="color:var(--warning)">{{ s.pending }}</span><span class="stat-label">待办</span></div>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" style="width:{{ s.rate }}"></div>
+        </div>
+        <div class="project-card-footer">
+            <span>完成率 {{ s.rate }}</span>
+            {% if s.milestones %}<span>{{ s.milestones }} 个里程碑</span>{% endif %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding:24px 0">
+            <p>暂无任务数据</p>
+        </div>
+        {% endif %}
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="dashboard-empty">
+    <h3>暂无可用项目</h3>
+    <p>请联系管理员创建项目</p>
+</div>
+{% endif %}
+</div>
+{% endblock %}

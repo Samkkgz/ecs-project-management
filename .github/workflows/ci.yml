@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: app/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r app/requirements.txt
+
+      - name: Compile check
+        run: python -m compileall -q app
+
+      - name: Secret scan
+        run: |
+          if git grep -nE 'ECSAdmin[0-9]{4}!|postgresql://ecs:ecs[0-9]{3}@' -- \
+              '*.py' '*.yml' '*.yaml' '*.md' '*.html' '*.example' '.env.example'; then
+            echo "Legacy credential found" >&2
+            exit 1
+          fi
+
+      - name: Runtime smoke test
+        env:
+          SECRET_KEY: ci-only-secret-key-0123456789abcdef0123456789abcdef
+          JWT_SECRET: ci-only-jwt-secret-0123456789abcdef0123456789abcdef
+          DATABASE_URL: sqlite:////tmp/ci.db
+          UPLOAD_FOLDER: /tmp/ci-files
+          COOKIE_SECURE: "false"
+        run: |
+          cd app
+          python -m uvicorn run:app --host 127.0.0.1 --port 18081 &
+          APP_PID=$!
+          trap 'kill $APP_PID 2>/dev/null || true' EXIT
+
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:18081/login > /dev/null; then break; fi
+            sleep 1
+          done
+
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/login)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/docs)" = "404"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/redoc)" = "404"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/openapi.json)" = "404"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/debug/seed)" = "404"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/api/files/1/download)" = "303"
+
+          curl -s -D - -o /dev/null http://127.0.0.1:18081/login | grep -qi 'content-security-policy'
+          curl -s -D - -o /dev/null http://127.0.0.1:18081/login | grep -qi 'x-frame-options'
+          echo "Smoke test passed"

@@ -1,0 +1,46 @@
+<div class="task-detail" x-data="{ showForm: false }">
+    <div class="detail-row">
+        <span class="detail-label">EBC步骤</span>
+        <span class="detail-value">{{ task.ebc_step }}</span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">阶段</span>
+        <span class="detail-value">{{ task.phase }}</span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">内容</span>
+        <span class="detail-value">{{ task.content or '-' }}</span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">产出/交付物</span>
+        <span class="detail-value">{{ task.deliverable or '-' }}</span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">公司</span>
+        <span class="detail-value">{{ task.company or '-' }}</span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">负责人</span>
+        <span class="detail-value">{{ task.person_responsible or '-' }}</span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">状态</span>
+        <span class="detail-value"><span class="badge badge-{{ task.status }}">{{ task.status }}</span></span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">开始/结束</span>
+        <span class="detail-value">{{ task.start_date.strftime('%Y-%m-%d') if task.start_date else '-' }} ~ {{ task.end_date.strftime('%Y-%m-%d') if task.end_date else '-' }}</span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">里程碑</span>
+        <span class="detail-value">{{ '是' if task.is_milestone else '否' }}</span>
+    </div>
+    <div class="detail-actions">
+        <button class="btn btn-primary" @click="showForm = true; activeModalTitle='编辑任务'"
+                hx-get="/api/tasks/{{ task.id }}/edit"
+                hx-target="#task-form-container"
+                hx-swap="innerHTML">
+            编辑任务
+        </button>
+    </div>
+</div>

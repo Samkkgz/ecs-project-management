@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="admin-page">
+<div class="page-header"><h2>系统管理</h2></div>
+
+<div class="tab-nav">
+    <a href="?tab=projects" class="tab-btn {% if tab == 'projects' %}active{% endif %}">项目管理</a>
+    <a href="?tab=users" class="tab-btn {% if tab == 'users' %}active{% endif %}">用户管理</a>
+    <a href="?tab=members" class="tab-btn {% if tab == 'members' %}active{% endif %}">项目成员</a>
+</div>
+
+{# ============== Projects Tab ============== #}
+{% if tab == 'projects' %}
+<div class="page-header" style="margin-top:0">
+    <h3 style="font-size:16px;font-weight:600">项目管理</h3>
+    <button class="btn btn-primary" @click="activeModalTitle='新建项目';activeModalContent=document.getElementById('cp').innerHTML;activeModal='cp'">新建项目</button>
+</div>
+<div class="table-container">
+<table class="table"><thead><tr>
+    <th>项目名称</th><th>状态</th><th>排序</th><th>任务数</th><th>创建时间</th><th>操作</th>
+</tr></thead><tbody>
+{% for p in projects %}
+<tr>
+    <td><a href="/set-project/{{ p.id }}?next=/gantt" style="font-weight:500">{{ p.name }}</a></td>
+    <td><span class="badge badge-{{ p.status }}">{{ p.status }}</span></td>
+    <td>{{ p.sort_order }}</td>
+    <td>{{ p.task_count }}</td>
+    <td class="date-cell">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '-' }}</td>
+    <td class="actions">
+        <button class="btn btn-sm btn-outline" @click="activeModalTitle='编辑项目 - {{ p.name }}';activeModalContent=document.getElementById('ep{{ p.id }}').innerHTML;activeModal='ep{{ p.id }}'">编辑</button>
+        <form method="POST" action="/admin/projects/{{ p.id }}/delete" onsubmit="return confirm('确定删除项目「{{ p.name }}」吗？\n所有相关任务和数据将被永久删除！')" style="display:inline">
+            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+        </form>
+    </td>
+</tr>
+{% else %}<tr><td colspan="6" style="text-align:center;color:var(--gray-400)">暂无项目</td></tr>
+{% endfor %}
+</tbody></table>
+</div>
+{% endif %}
+
+{# ============== Users Tab ============== #}
+{% if tab == 'users' %}
+<div class="page-header" style="margin-top:0">
+    <h3 style="font-size:16px;font-weight:600">用户管理</h3>
+    <button class="btn btn-primary" @click="activeModalTitle='新建用户';activeModalContent=document.getElementById('cu').innerHTML;activeModal='cu'">新建用户</button>
+</div>
+<div class="table-container">
+<table class="table"><thead><tr>
+    <th>邮箱</th><th>用户名</th><th>公司</th><th>角色</th><th>状态</th><th>创建时间</th><th>操作</th>
+</tr></thead><tbody>
+{% for user in users %}
+<tr>
+    <td>{{ user.email }}</td>
+    <td>{{ user.username }}</td>
+    <td>{{ user.company or '-' }}</td>
+    <td><span class="badge badge-{{ user.role }}">{{ user.role }}</span></td>
+    <td><span class="badge badge-{{ user.status }}">{{ user.status }}</span></td>
+    <td class="date-cell">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}</td>
+    <td class="actions">
+        <button class="btn btn-sm btn-outline" @click="activeModalTitle='编辑用户 - {{ user.username }}';activeModalContent=document.getElementById('eu{{ user.id }}').innerHTML;activeModal='eu{{ user.id }}'">编辑</button>
+        {% if current_user.is_super_admin() and user.id != current_user.id %}
+        <form method="POST" action="/admin/users/{{ user.id }}/delete" onsubmit="return confirm('确定删除用户 {{ user.username }} 吗？')" style="display:inline">
+            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+        </form>
+        {% endif %}
+    </td>
+</tr>
+{% else %}<tr><td colspan="7" style="text-align:center;color:var(--gray-400)">暂无用户</td></tr>
+{% endfor %}
+</tbody></table>
+</div>
+{% endif %}
+
+{# ============== Members Tab ============== #}
+{% if tab == 'members' %}
+<div class="page-header" style="margin-top:0">
+    <h3 style="font-size:16px;font-weight:600">项目成员管理</h3>
+</div>
+
+<form method="GET" action="/admin" style="margin-bottom:16px">
+    <input type="hidden" name="tab" value="members">
+    <div class="form-group" style="margin-bottom:0">
+        <label for="member-project-select">选择项目</label>
+        <select id="member-project-select" name="project" onchange="this.form.submit()" class="upload-select">
+            <option value="">— 请选择项目 —</option>
+            {% for p in projects %}
+            <option value="{{ p.id }}" {% if selected_project_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</form>
+
+{% if selected_project %}
+{% set sid = selected_project.id %}
+<div class="table-container">
+<table class="table"><thead><tr>
+    <th>用户名</th><th>邮箱</th><th>公司</th><th>操作</th>
+</tr></thead><tbody>
+{% for member in project_members[sid] %}
+<tr>
+    <td>{{ member.username }}</td>
+    <td>{{ member.email }}</td>
+    <td>{{ member.company or '-' }}</td>
+    <td class="actions">
+        <form method="POST" action="/admin/projects/{{ sid }}/members/remove/{{ member.id }}" style="display:inline">
+            <button type="submit" class="btn btn-sm btn-danger">移除</button>
+        </form>
+    </td>
+</tr>
+{% else %}
+<tr><td colspan="4" style="text-align:center;color:var(--gray-400)">暂无成员</td></tr>
+{% endfor %}
+</tbody></table>
+</div>
+
+<form method="POST" action="/admin/projects/{{ sid }}/members/add" style="margin-top:12px;display:flex;gap:8px;align-items:center">
+    <label for="member-add-select" class="upload-label" style="white-space:nowrap">添加成员：</label>
+    <select id="member-add-select" name="user_id" required class="upload-select">
+        <option value="">选择用户...</option>
+        {% for u in all_users %}
+        {% if u not in project_members[sid] %}
+        <option value="{{ u.id }}">{{ u.username }} ({{ u.email }})</option>
+        {% endif %}
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">添加</button>
+</form>
+{% endif %}
+{% endif %}
+
+</div>{# /admin-page #}
+
+{# ============== Hidden Create/Edit Modals ============== #}
+<div id="cp" style="display:none">
+<form method="POST" action="/admin/projects/create">
+<div class="form-group"><label>项目名称 *</label><input type="text" name="name" required placeholder="输入项目名称"></div>
+<div class="form-group"><label>状态</label><select name="status">{% for s in project_statuses %}<option value="{{ s }}" {% if s == '进行中' %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+<div class="form-group"><label>排序</label><input type="number" name="sort_order" value="0" style="width:100px"></div>
+<div class="form-actions"><button type="submit" class="btn btn-primary">创建</button><button type="button" class="btn btn-secondary" @click="activeModal = null">取消</button></div>
+</form>
+</div>
+
+{% for p in projects %}
+<div id="ep{{ p.id }}" style="display:none">
+<form method="POST" action="/admin/projects/{{ p.id }}/edit">
+<div class="form-group"><label>项目名称</label><input type="text" name="name" value="{{ p.name }}" required></div>
+<div class="form-group"><label>状态</label><select name="status">{% for s in project_statuses %}<option value="{{ s }}" {% if s == p.status %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+<div class="form-group"><label>排序</label><input type="number" name="sort_order" value="{{ p.sort_order or 0 }}" style="width:100px"></div>
+<div class="form-actions"><button type="submit" class="btn btn-primary">保存</button><button type="button" class="btn btn-secondary" @click="activeModal = null">取消</button></div>
+</form>
+</div>
+{% endfor %}
+
+<div id="cu" style="display:none">
+<form method="POST" action="/admin/users/create">
+<div class="form-group"><label for="cu-email">邮箱 *</label><input id="cu-email" type="email" name="email" required placeholder="user@example.com" autocomplete="email"></div>
+<div class="form-group"><label for="cu-username">用户名 *</label><input id="cu-username" type="text" name="username" required placeholder="用户名" autocomplete="username"></div>
+<div class="form-group"><label for="cu-company">公司</label><input id="cu-company" type="text" name="company" placeholder="所属公司" autocomplete="organization"></div>
+<div class="form-group"><label for="cu-password">密码 *</label><input id="cu-password" type="password" name="password" required placeholder="设置密码" autocomplete="new-password"></div>
+<div class="form-group"><label for="cu-role">角色</label>
+<select id="cu-role" name="role"><option value="user">普通用户</option><option value="admin">管理员</option>{% if current_user.is_super_admin() %}<option value="super_admin">超级管理员</option>{% endif %}</select></div>
+<div class="form-actions"><button type="submit" class="btn btn-primary">创建</button><button type="button" class="btn btn-secondary" @click="activeModal = null">取消</button></div>
+</form>
+</div>
+
+{% for user in users %}
+<div id="eu{{ user.id }}" style="display:none">
+<form method="POST" action="/admin/users/{{ user.id }}/edit">
+<div class="form-group"><label>用户名</label><input type="text" name="username" value="{{ user.username }}" required autocomplete="username"></div>
+<div class="form-group"><label>公司</label><input type="text" name="company" value="{{ user.company or '' }}" autocomplete="organization"></div>
+<div class="form-group"><label>角色</label><select name="role">{% for r in user_roles %}<option value="{{ r }}" {% if r == user.role %}selected{% endif %}>{{ r }}</option>{% endfor %}</select></div>
+<div class="form-group"><label>状态</label><select name="status">{% for s in user_statuses %}<option value="{{ s }}" {% if s == user.status %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+<div class="form-group"><label>新密码（留空不修改）</label><input type="password" name="password" placeholder="留空不修改" autocomplete="new-password"></div>
+<div class="form-actions"><button type="submit" class="btn btn-primary">保存</button><button type="button" class="btn btn-secondary" @click="activeModal = null">取消</button></div>
+</form>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,54 @@
+{% if files %}
+<table class="table file-table">
+    <thead>
+        <tr>
+            <th>文件名</th>
+            <th>大小</th>
+            <th>EBC步骤</th>
+            <th>上传者</th>
+            <th>上传时间</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for fm in files %}
+        <tr>
+            <td class="file-name-cell">
+                <div class="file-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </div>
+                <a href="/api/files/{{ fm.id }}/download" class="file-link">{{ fm.original_filename }}</a>
+            </td>
+            <td class="file-size-cell">{{ fm.size_display() }}</td>
+            <td>{{ fm.ebc_step or '-' }}</td>
+            <td>{{ fm.uploader.username if fm.uploader else '-' }}</td>
+            <td class="date-cell">{{ fm.created_at.strftime('%Y-%m-%d') if fm.created_at else '-' }}</td>
+            <td class="actions">
+                <a href="/api/files/{{ fm.id }}/download" class="btn btn-sm btn-outline">下载</a>
+                {% if current_user.is_admin() %}
+                <form hx-post="/api/projects/{{ fm.project_id }}/files/{{ fm.id }}/delete"
+                      hx-target="#file-list"
+                      hx-swap="innerHTML"
+                      onsubmit="return confirm('确定删除此文件吗？')"
+                      style="display:inline">
+                    <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+    </svg>
+    <p>暂无文件</p>
+    <p class="empty-hint">拖拽文件到上方上传区域进行上传</p>
+</div>
+{% endif %}
